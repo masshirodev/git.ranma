@@ -13,10 +13,11 @@
 -- and on a slow fallback timer; never two at once for one repository, and
 -- none while the bar does not show the module. A pane whose shell is on
 -- another host (ssh, by OSC 7) shows nothing rather than a local repository
--- at the same path. Clicking it opens the status.
+-- at the same path. The bar shows a look as soon as it ends. Clicking it
+-- opens the status.
 --
 -- leader G is the git folder, on the focused pane's repository:
---   s  status in a floating pane       l  lazygit in one (when installed)
+--   s  status in a popup               l  lazygit in one (when installed)
 --   c  copy HEAD's SHA                 b  copy the branch name
 --   o  open the remote in the browser (gh browse, or the remote's URL made
 --      into a web address when gh is missing or fails; copied instead when
@@ -25,6 +26,9 @@
 -- Options (settings panel, "git" group): git.format, git.interval,
 -- git.untracked, git.status_command, git.lazygit, git.float, git.browse,
 -- git.remote.
+--
+-- Needs ranma 0.2.2 or newer, the first whose jobs can open popups and
+-- whose modules can be refreshed from a job's end.
 --
 -- ranma's plugin API: https://github.com/masshirodev/ranma/blob/main/doc/CONFIG.md ("The bar",
 -- "Timers and processes", "Hooks").
@@ -47,15 +51,15 @@ ranma.option("git.untracked", {
 })
 ranma.option("git.status_command", {
   type = "string", default = "git -c color.status=always status | less -R -+F -c",
-  name = "Status command", desc = "What leader G s runs in the floating pane, in the pane's directory.",
+  name = "Status command", desc = "What leader G s runs in the popup, in the pane's directory.",
 })
 ranma.option("git.lazygit", {
   type = "bool", default = true,
-  name = "lazygit key", desc = "leader G l opens lazygit in a floating pane (when lazygit is installed).",
+  name = "lazygit key", desc = "leader G l opens lazygit in a popup (when lazygit is installed).",
 })
 ranma.option("git.float", {
   type = "int", min = 20, max = 100, step = 5, default = 80,
-  name = "Popup size", desc = "The floating pane's width and height, in percent of the workspace.",
+  name = "Popup size", desc = "The popup's width and height, in percent of the workspace.",
 })
 ranma.option("git.browse", {
   type = "enum", choices = { "auto", "gh", "url" }, default = "auto",
@@ -94,8 +98,11 @@ local HOST = short(hostname())
 local elsewhere = {}
 
 -- The module ticks only while the bar shows it; a look nobody would see is
--- not taken.
-local SHOWN_FOR = 3
+-- not taken. It ticks every TICK seconds, so it counts as shown for a little
+-- over two ticks after the last one. What a look finds is shown when the look
+-- ends (ranma.refresh_module), not at the next tick.
+local TICK = 30
+local SHOWN_FOR = 2 * TICK + 5
 local shown_at = nil
 
 -- cwd -> the repository's top level (false outside one), from earlier looks.
@@ -183,6 +190,7 @@ local function look(cwd, again)
         status[s.top] = s
         if key ~= s.top then status[key] = nil end
       end
+      if shown() then ranma.refresh_module("git") end
       if again then look(cwd, true) end
     end,
   })
@@ -197,8 +205,12 @@ local function focused_cwd()
   return cwd_of(ranma.pane())
 end
 
+-- Look again at the focused pane's repository, and show at once what is
+-- already known of it (another pane's repository, or none, since focus moved).
 local function refresh()
-  if shown() then look(focused_cwd(), true) end
+  if not shown() then return end
+  look(focused_cwd(), true)
+  ranma.refresh_module("git")
 end
 
 local function fill(s)
@@ -219,15 +231,26 @@ local function fill(s)
   end)), changed
 end
 
-local function popup(cmd)
-  if not focused_cwd() then return ranma.notify("git: the pane has no local directory") end
-  local size = ranma.get("git.float")
-  ranma.action("exec " .. cmd)
-  ranma.action("float_size " .. size .. " " .. size)
+-- `cmd` in a popup at git.float's size, in the focused pane's directory. A
+-- job, so it does not block; its stdout goes to the popup's terminal rather
+-- than to the answer `ranma popup` would print, since less and lazygit draw
+-- there. Whatever was done in it (a commit in lazygit) is looked at after.
+local function popup(title, cmd)
+  local cwd = focused_cwd()
+  if not cwd then return ranma.notify("git: the pane has no local directory") end
+  local size = tostring(ranma.get("git.float"))
+  ranma.spawn({ "ranma", "popup", "-W", size, "-H", size, "-t", title, "--",
+                "{ " .. cmd .. "\n} >/dev/tty" }, {
+    cwd = cwd,
+    on_exit = function(r)
+      if r.error then return ranma.notify("git: " .. r.error) end
+      if shown() then look(cwd, true) end
+    end,
+  })
 end
 
 local function open_status()
-  popup(ranma.get("git.status_command"))
+  popup("git status", ranma.get("git.status_command"))
 end
 
 -- Run a git command in the focused pane's directory and hand its first line
@@ -309,7 +332,7 @@ local function browse()
 end
 
 ranma.module("git", {
-  interval = 1,
+  interval = TICK,
   render = function()
     local was_shown = shown()
     shown_at = os.time()
@@ -362,7 +385,7 @@ ranma.bind("shift+g s", open_status, { desc = "status", exit = true })
 if HAS_LAZYGIT then
   ranma.bind("shift+g l", function()
     if not ranma.get("git.lazygit") then return ranma.notify("git: lazygit is off (git.lazygit)") end
-    popup("lazygit")
+    popup("lazygit", "lazygit")
   end, { desc = "lazygit", exit = true })
 end
 ranma.bind("shift+g c", copy_sha, { desc = "copy HEAD's SHA", exit = true })

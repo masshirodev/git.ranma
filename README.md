@@ -22,7 +22,7 @@ Then put the module in the bar, which no plugin does for you:
 ranma.bar { right = { "git", "datetime" } }
 ```
 
-Needs: `git`. Optional: `lazygit` (the `l` key exists only when it is installed), `gh` (for `o`), `less` (the default status command).
+Needs: ranma 0.2.2 or newer (the first whose jobs open popups and whose modules a job can refresh), and `git`. Optional: `lazygit` (the `l` key exists only when it is installed), `gh` (for `o`), `less` (the default status command).
 
 ## What it does
 
@@ -40,10 +40,11 @@ of the same repository (with shell integration), when focus moves,
 and on a slow fallback timer; never two at once for one repository, and
 none while the bar does not show the module. A pane whose shell is on
 another host (ssh, by OSC 7) shows nothing rather than a local repository
-at the same path. Clicking it opens the status.
+at the same path. The bar shows a look as soon as it ends. Clicking it
+opens the status.
 
 leader G is the git folder, on the focused pane's repository:
-  s  status in a floating pane       l  lazygit in one (when installed)
+  s  status in a popup               l  lazygit in one (when installed)
   c  copy HEAD's SHA                 b  copy the branch name
   o  open the remote in the browser (gh browse, or the remote's URL made
      into a web address when gh is missing or fails; copied instead when
@@ -57,8 +58,8 @@ git.remote.
 | Key | Does |
 | --- | --- |
 | `leader G` | the git folder (`G` is `shift+g`; `g` is ranma's `toggle_group`) |
-| `leader G s` | `git.status_command` in a floating pane, in the focused pane's directory |
-| `leader G l` | lazygit in a floating pane; only bound when lazygit is installed |
+| `leader G s` | `git.status_command` in a popup, in the focused pane's directory |
+| `leader G l` | lazygit in a popup; only bound when lazygit is installed |
 | `leader G c` | copy HEAD's full SHA |
 | `leader G b` | copy the branch name |
 | `leader G o` | open the remote in the browser |
@@ -75,9 +76,9 @@ In ranma's settings panel under `git`, or with hako's `opts` (`{ "masshirodev/gi
 | `git.format` | `"{branch}{dirty}{ab}"` | The module's text. `{branch}`; `{dirty}` is ` *N` with N files changed; `{ab}` is ` ↑A ↓B` against the upstream; the bare numbers `{staged}` `{changed}` `{untracked}` `{conflicts}` `{ahead}` `{behind}`. |
 | `git.interval` | `30` | Seconds between two looks when nothing else asked for one; `0` never. |
 | `git.untracked` | `true` | Count untracked files as changed. Off is faster in a huge working tree. |
-| `git.status_command` | `"git -c color.status=always status \| less -R -+F -c"` | What `leader G s` runs in the floating pane, in the pane's directory. |
-| `git.lazygit` | `true` | `leader G l` opens lazygit in a floating pane (when lazygit is installed). |
-| `git.float` | `80` | The floating pane's width and height, in percent of the workspace. |
+| `git.status_command` | `"git -c color.status=always status \| less -R -+F -c"` | What `leader G s` runs in the popup, in the pane's directory. Its output goes to the popup's terminal. |
+| `git.lazygit` | `true` | `leader G l` opens lazygit in a popup (when lazygit is installed). |
+| `git.float` | `80` | The popup's width and height, in percent of the workspace. |
 | `git.browse` | `"auto"` | `gh`: `gh browse`. `url`: the remote's URL made into a web address. `auto`: gh when it is installed, the URL when gh fails. |
 | `git.remote` | `"origin"` | The remote `leader G o` opens (gh browse picks its own). |
 

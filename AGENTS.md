@@ -10,6 +10,11 @@ https://github.com/masshirodev/ranma/blob/main/doc/CONFIG.md (`ranma --dump-type
 - Keep it to API that exists in the latest ranma release: CI loads it there.
 - Never poll fast: a look at a repository is one `ranma.spawn` of git, at
   most one in flight per repository, and none while the bar hides the module.
+  The module ticks every 30 s only so the plugin knows the bar shows it; a
+  look's `on_exit` shows its result with `ranma.refresh_module("git")`.
+- The popups are `ranma popup` run as a job (ranma 0.2.2 gives jobs the
+  server's `RANMA_SOCKET`), with the command's stdout sent to `/dev/tty`,
+  since `ranma popup` captures stdout and less and lazygit draw there.
 - Check it loads: `ranma --check-config` lists every plugin and why one failed;
   `ranma lua` runs code in the live server. Test behaviour against a private
   server (its own `RANMA_CONFIG_DIR` and `XDG_RUNTIME_DIR`, with `RANMA_SOCKET`
