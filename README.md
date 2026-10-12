@@ -22,6 +22,8 @@ Then put the module in the bar, which no plugin does for you:
 ranma.bar { right = { "git", "datetime" } }
 ```
 
+Add it to the bar only once the plugin is installed: a bar naming a module that no installed plugin declares makes every config reload fail.
+
 Needs: ranma 0.2.2 or newer (the first whose jobs open popups and whose modules a job can refresh), and `git`. Optional: `lazygit` (the `l` key exists only when it is installed), `gh` (for `o`), `less` (the default status command).
 
 ## What it does
