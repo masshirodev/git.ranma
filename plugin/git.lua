@@ -14,7 +14,11 @@
 -- none while the bar does not show the module. A pane whose shell is on
 -- another host (ssh, by OSC 7) shows nothing rather than a local repository
 -- at the same path. The bar shows a look as soon as it ends. Clicking it
--- opens the status.
+-- opens the status. While a ranma nested inside this one is focused (an
+-- `ssh vps` pane running ranma), the module is blank rather than showing
+-- this machine's branch for the ssh pane's directory; a git module the
+-- inner ranma has replaces it there. That needs a ranma with `ranma.has`
+-- and nested modules (0.3.0); an older one shows the branch as before.
 --
 -- leader G is the git folder, on the focused pane's repository:
 --   s  status in a popup               l  lazygit in one (when installed)
@@ -348,6 +352,9 @@ ranma.module("git", {
     return { text = text, style = style }
   end,
   on_click = open_status,
+  -- About the focused pane, so it means nothing for a nested ranma's.
+  -- Asked, not assumed: an older ranma refuses the option.
+  nested = (ranma.has and ranma.has("module.nested")) and "hide" or nil,
 })
 
 ranma.on("cwd_change", function(e)
